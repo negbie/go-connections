@@ -47,6 +47,7 @@ type connTrackMap map[connTrackKey]*net.UDPConn
 type UDPProxy struct {
 	Logger         logger
 	listener       *net.UDPConn
+	sender         *net.UDPConn
 	frontendAddr   *net.UDPAddr
 	backendAddr    *net.UDPAddr
 	connTrackTable connTrackMap
@@ -134,6 +135,7 @@ func (proxy *UDPProxy) Run() {
 				proxy.connTrackLock.Unlock()
 				continue
 			}
+			proxy.sender = proxyConn
 			proxy.connTrackTable[*fromKey] = proxyConn
 			go proxy.replyLoop(proxyConn, from, fromKey)
 		}
@@ -164,6 +166,12 @@ func (proxy *UDPProxy) FrontendAddr() net.Addr { return proxy.frontendAddr }
 
 // BackendAddr returns the proxied UDP address.
 func (proxy *UDPProxy) BackendAddr() net.Addr { return proxy.backendAddr }
+
+// FrontendConn returns the frontend connection.
+func (proxy *UDPProxy) FrontendConn() net.Conn { return proxy.listener }
+
+// BackendConn returns the backend connection.
+func (proxy *UDPProxy) BackendConn() net.Conn { return proxy.sender }
 
 func isClosedError(err error) bool {
 	/* This comparison is ugly, but unfortunately, net.go doesn't export errClosing.
